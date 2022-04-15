@@ -40,7 +40,7 @@ const TopNavigation = ({navigation}) => {
             style={{
               textAlign: 'center',
               color: activeScreen === "Home" ? 'white' : '#a0a0a0',
-              fontFamily: 'Poppins-SemiBold',
+              fontFamily: 'Poppins-Regular',
               fontSize: 14,
             }}>
             Al-Quran
