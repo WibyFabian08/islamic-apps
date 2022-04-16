@@ -21,24 +21,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const Surat = ({navigation, route}) => {
   const [data, setData] = useState(null);
   const [isStop, setIsStop] = useState(false);
-  const [indexData, setIndexData] = useState(null);
-  const [lastRead, setLastRead] = useState(null);
   const flatListRef = useRef(null);
-
-  console.log(data);
-
-  const markerColor = index => {
-    if (
-      lastRead !== null &&
-      data.name == lastRead?.name &&
-      indexData !== null &&
-      indexData === index
-    ) {
-      return 'black';
-    } else {
-      return 'lightgray';
-    }
-  };
+  const indexRef = useRef(0);
+  const lastReadRef = useRef({});
+  const [currentIndex, setCurrentIndex] = useState(0);
 
   const handleClickAyat = async index => {
     clearData();
@@ -51,7 +37,6 @@ const Surat = ({navigation, route}) => {
     try {
       const jsonValue = JSON.stringify(storeData);
       await AsyncStorage.setItem('lastRead', jsonValue);
-
       getData();
     } catch (err) {
       console.log(err);
@@ -63,8 +48,9 @@ const Surat = ({navigation, route}) => {
       const value = await AsyncStorage.getItem('lastRead');
       if (value !== null) {
         const data = JSON.parse(value);
-        setLastRead(data);
-        setIndexData(data.ayat);
+        lastReadRef.current = data;
+        indexRef.current = data.ayat;
+        setCurrentIndex(data.ayat);
       }
     } catch (e) {
       console.log(e);
@@ -73,8 +59,6 @@ const Surat = ({navigation, route}) => {
 
   const clearData = async () => {
     await AsyncStorage.clear();
-    setLastRead(null);
-    setIndexData(null);
   };
 
   const play = () => {
@@ -101,10 +85,94 @@ const Surat = ({navigation, route}) => {
 
   const backAction = () => {
     stop();
-    navigation.push("Home");
+    navigation.push('Home');
   };
 
-  useEffect(() => {
+  const ListItem = ({arab, translation, tafsir, index}) => {
+    return (
+      <View key={index} style={{marginBottom: 20}}>
+        <TouchableOpacity
+          onPress={() => handleClickAyat(index)}
+          style={{
+            padding: 10,
+            borderWidth: 2,
+            borderRadius: 12,
+            marginBottom: 10,
+            borderColor: '#71d5e3',
+            backgroundColor: 'rgba(113, 213, 227, 0.1)',
+            flexDirection: 'row',
+            alignItems: 'center',
+          }}>
+          {lastReadRef.current &&
+            data.name == lastReadRef?.current?.name &&
+            indexRef.current === index && (
+              <View>
+                <Image
+                  source={IconMark}
+                  style={{
+                    height: 30,
+                    width: 30,
+                    tintColor: 'black',
+                  }}
+                  resizeMode="contain"></Image>
+              </View>
+            )}
+          <Text
+            style={{
+              color: '#9ea3a3',
+              fontSize: 26,
+              fontFamily: 'Poppins-Regular',
+              flex: 1,
+            }}>
+            {arab}
+          </Text>
+        </TouchableOpacity>
+        <Text
+          style={{
+            color: '#9ea3a3',
+            fontSize: 16,
+            fontFamily: 'Poppins-SemiBold',
+            marginBottom: 10,
+          }}>
+          {index + 1}. {translation}
+        </Text>
+        <Text
+          style={{
+            color: '#9ea3a3',
+            fontSize: 16,
+            fontFamily: 'Poppins-Regular',
+            marginBottom: 10,
+          }}>
+          {tafsir}
+        </Text>
+      </View>
+    );
+  };
+
+  const renderItem = ({item, index}) => (
+    <ListItem
+      arab={item.arab}
+      translation={item.translation}
+      tafsir={item.tafsir.kemenag.short}
+      index={index}></ListItem>
+  );
+
+  const HeaderItem = () => {
+    return (
+        <Text
+          style={{
+            color: '#9ea3a3',
+            fontSize: 26,
+            fontFamily: 'Poppins-Regular',
+            textAlign: 'center',
+            marginBottom: 10,
+          }}>
+          {data !== null && route.params.suratNo !== 1 && data.bismillah.arab}
+        </Text>
+    )
+  };
+
+  const fetchDataApi = () => {
     axios
       .get(`https://quran-api-id.vercel.app/surahs/${route.params.suratNo}`)
       .then(res => {
@@ -113,6 +181,10 @@ const Surat = ({navigation, route}) => {
       .catch(err => {
         console.log(err);
       });
+  };
+
+  useEffect(() => {
+    fetchDataApi();
   }, [route.params.suratNo]);
 
   useEffect(() => {
@@ -149,14 +221,15 @@ const Surat = ({navigation, route}) => {
             fontFamily: 'Poppins-SemiBold',
             fontSize: 18,
           }}>
-          {data !== null && data.name}
+          {data !== null && `${data.name} (${data.numberOfAyahs})`}
         </Text>
         {data !== null && (
           <TouchableOpacity
             activeOpacity={0.8}
-            onPress={() =>
-              navigation.push('Surat', {suratNo: data.number + 1})
-            }>
+            onPress={() => {
+              stop();
+              navigation.push('Surat', {suratNo: data.number + 1});
+            }}>
             <Image
               source={IconNext}
               style={{height: 30, width: 30}}
@@ -165,163 +238,95 @@ const Surat = ({navigation, route}) => {
         )}
       </View>
       <View style={{flex: 1}}>
+        
+        <View
+          style={{
+            position: 'absolute',
+            bottom: 30,
+            zIndex: 10,
+            flexDirection: 'column',
+          }}>
+          {data !== null && data.audio && (
+            <View
+              style={{
+                justifyContent: 'center',
+                flexDirection: 'row',
+                marginBottom: 10
+              }}>
+              {isStop ? (
+                <TouchableOpacity
+                  onPress={() => stop()}
+                  style={{
+                    height: 50,
+                    width: 50,
+                    borderRadius: 100,
+                    backgroundColor: '#ff5d5d',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  }}>
+                  <Image
+                    source={IconStop}
+                    style={{height: 30, width: 30, tintColor: 'white'}}
+                    resizeMode="contain"></Image>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  onPress={() => play()}
+                  style={{
+                    height: 50,
+                    width: 50,
+                    borderRadius: 100,
+                    backgroundColor: '#ff5d5d',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  }}>
+                  <Image
+                    source={IconPlay}
+                    style={{height: 30, width: 30, tintColor: 'white'}}
+                    resizeMode="contain"></Image>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+          {data !== null &&
+            lastReadRef.current &&
+            data.name == lastReadRef.current.name && (
+              <TouchableOpacity
+                style={{
+                  backgroundColor: '#71d5e3',
+                  borderRadius: 100,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  height: 50,
+                  width: 50,
+                }}
+                onPress={() => {
+                  flatListRef?.current?.scrollToIndex({
+                    index: indexRef.current,
+                    animated: true,
+                  });
+                }}>
+                <Image
+                  source={IconMark}
+                  style={{height: 30, width: 30, tintColor: 'white'}}
+                  resizeMode="contain"></Image>
+              </TouchableOpacity>
+            )}
+        </View>
+
         {/* render arab */}
         {data !== null && data.ayahs.length > 0 ? (
           <FlatList
             ref={flatListRef}
             data={data.ayahs}
+            keyExtractor={data.ayahs.arab}
             showsVerticalScrollIndicator={false}
-            ListHeaderComponent={() => {
-              return (
-                <>
-                  {data !== null && data.audio && (
-                    <View
-                      style={{justifyContent: 'center', flexDirection: 'row'}}>
-                      {isStop ? (
-                        <TouchableOpacity
-                          onPress={() => stop()}
-                          style={{
-                            height: 50,
-                            width: 50,
-                            borderRadius: 100,
-                            backgroundColor: 'transparent',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            elevation: 1,
-                          }}>
-                          <Image
-                            source={IconStop}
-                            style={{height: 30, width: 30}}
-                            resizeMode="contain"></Image>
-                        </TouchableOpacity>
-                      ) : (
-                        <TouchableOpacity
-                          onPress={() => play()}
-                          style={{
-                            height: 50,
-                            width: 50,
-                            borderRadius: 100,
-                            backgroundColor: 'transparent',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            elevation: 1,
-                          }}>
-                          <Image
-                            source={IconPlay}
-                            style={{height: 30, width: 30}}
-                            resizeMode="contain"></Image>
-                        </TouchableOpacity>
-                      )}
-                    </View>
-                  )}
-                  {data !== null && data.audio && (
-                    <Text
-                      style={{
-                        flex: 1,
-                        textAlign: 'center',
-                        fontFamily: 'Poppins-SemiBold',
-                        fontSize: 18,
-                      }}>
-                      Putar Surat
-                    </Text>
-                  )}
-                  {data !== null &&
-                    lastRead !== null &&
-                    data.name == lastRead.name && (
-                      <TouchableOpacity
-                        style={{
-                          backgroundColor: '#71d5e3',
-                          paddingVertical: 10,
-                          borderRadius: 100,
-                        }}
-                        onPress={() => {
-                          flatListRef?.current?.scrollToIndex({
-                            index: indexData,
-                            animated: true,
-                          });
-                        }}>
-                        <Text
-                          style={{
-                            color: 'white',
-                            fontFamily: 'Poppins-SemiBold',
-                            textAlign: 'center',
-                          }}>
-                          Lanjutkan Membaca Ayat (
-                          {indexData !== null && indexData + 1})
-                        </Text>
-                      </TouchableOpacity>
-                    )}
-                  <Text
-                    style={{
-                      color: '#9ea3a3',
-                      fontSize: 26,
-                      fontFamily: 'Poppins-Regular',
-                      textAlign: 'center',
-                      marginBottom: 10,
-                    }}>
-                    {data !== null &&
-                      route.params.suratNo !== 1 &&
-                      data.bismillah.arab}
-                  </Text>
-                </>
-              );
-            }}
-            renderItem={data => {
-              return (
-                <View key={data.index} style={{marginBottom: 20}}>
-                  <View
-                    style={{
-                      padding: 10,
-                      borderWidth: 2,
-                      borderRadius: 12,
-                      marginBottom: 10,
-                      borderColor: '#71d5e3',
-                      backgroundColor: 'rgba(113, 213, 227, 0.1)',
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                    }}>
-                    <TouchableOpacity
-                      onPress={() => handleClickAyat(data.index)}>
-                      <Image
-                        source={IconMark}
-                        style={{
-                          height: 30,
-                          width: 30,
-                          tintColor: markerColor(data.index),
-                        }}
-                        resizeMode="contain"></Image>
-                    </TouchableOpacity>
-                    <Text
-                      style={{
-                        color: '#9ea3a3',
-                        fontSize: 26,
-                        fontFamily: 'Poppins-Regular',
-                        flex: 1,
-                      }}>
-                      {data.item.arab}
-                    </Text>
-                  </View>
-                  <Text
-                    style={{
-                      color: '#9ea3a3',
-                      fontSize: 16,
-                      fontFamily: 'Poppins-SemiBold',
-                      marginBottom: 10,
-                    }}>
-                    {data.index + 1}. {data.item.translation}
-                  </Text>
-                  <Text
-                    style={{
-                      color: '#9ea3a3',
-                      fontSize: 16,
-                      fontFamily: 'Poppins-Regular',
-                      marginBottom: 10,
-                    }}>
-                    {data.item.tafsir.kemenag.short}
-                  </Text>
-                </View>
-              );
-            }}></FlatList>
+            initialNumToRender={data.ayahs.length}
+            updateCellsBatchingPeriod={data.ayahs.length}
+            maxToRenderPerBatch={data.ayahs.length}
+            removeClippedSubviews={true}
+            ListHeaderComponent={HeaderItem}
+            renderItem={renderItem}></FlatList>
         ) : (
           <ActivityIndicator style={{marginTop: 20}} size="large" />
         )}
@@ -331,46 +336,3 @@ const Surat = ({navigation, route}) => {
 };
 
 export default Surat;
-
-// data.ayahs.map((data, index) => {
-//   return (
-//     <View key={index} style={{marginBottom: 20}}>
-//       <View
-//         style={{
-//           padding: 10,
-//           borderWidth: 2,
-//           borderRadius: 12,
-//           marginBottom: 10,
-//           borderColor: '#71d5e3',
-//           backgroundColor: 'rgba(113, 213, 227, 0.1)',
-//         }}>
-//         <Text
-//           style={{
-//             color: '#9ea3a3',
-//             fontSize: 26,
-//             fontFamily: 'Poppins-Regular',
-//           }}>
-//           {data.arab}
-//         </Text>
-//       </View>
-//       <Text
-//         style={{
-//           color: '#9ea3a3',
-//           fontSize: 16,
-//           fontFamily: 'Poppins-SemiBold',
-//           marginBottom: 10,
-//         }}>
-//         {index + 1}. {data.translation}
-//       </Text>
-//       <Text
-//         style={{
-//           color: '#9ea3a3',
-//           fontSize: 16,
-//           fontFamily: 'Poppins-Regular',
-//           marginBottom: 10,
-//         }}>
-//         {data.tafsir.kemenag.short}
-//       </Text>
-//     </View>
-//   );
-// })

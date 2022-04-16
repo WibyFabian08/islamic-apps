@@ -1,19 +1,127 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, useRef} from 'react';
 import {
   View,
   Text,
-  ScrollView,
   TouchableOpacity,
   Image,
   ActivityIndicator,
+  FlatList,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import {Logo} from '../assets/images';
+import {IconMark} from '../assets/icons';
 import axios from 'axios';
-import { TopNavigation } from '../components';
+import {TopNavigation} from '../components';
 
 const Home = ({navigation}) => {
   const [data, setData] = useState([]);
+  const flatListRef = useRef(null);
+  const lastReadRef = useRef({});
+
+  const ListItem = ({
+    number,
+    name,
+    translation,
+    numberOfAyahs,
+    revelation,
+    index,
+  }) => {
+    return (
+      <TouchableOpacity
+        onPress={() => navigation.push('Surat', {suratNo: number})}
+        key={index}
+        activeOpacity={0.8}
+        style={{
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          paddingVertical: 10,
+          backgroundColor: 'white',
+          paddingHorizontal: 10,
+          borderRadius: 10,
+          marginTop: index == 0 ? 10 : 0,
+        }}>
+        <View>
+          <View style={{flexDirection: 'row', alignItems: 'center'}}>
+            <View
+              style={{
+                height: 30,
+                width: 30,
+                backgroundColor: 'black',
+                justifyContent: 'center',
+                alignItems: 'center',
+                borderRadius: 50,
+                marginRight: 10,
+              }}>
+              <Text
+                style={{
+                  color: 'white',
+                  fontSize: 12,
+                }}>
+                {number}
+              </Text>
+            </View>
+            <View>
+              <Text
+                style={{
+                  color: '#727272',
+                  fontSize: 18,
+                  fontFamily: 'Poppins-Regular',
+                }}>
+                {name}
+              </Text>
+              <Text
+                style={{
+                  color: '#727272',
+                  fontSize: 14,
+                  fontFamily: 'Poppins-Regular',
+                }}>
+                {translation} ({numberOfAyahs})
+              </Text>
+            </View>
+          </View>
+        </View>
+        <View>
+          <Text
+            style={{
+              color: '#727272',
+              fontSize: 14,
+              fontFamily: 'Poppins-Regular',
+            }}>
+            {revelation}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  const renderItem = ({item, index}) => (
+    <ListItem
+      number={item.number}
+      name={item.name}
+      translation={item.translation}
+      numberOfAyahs={item.numberOfAyahs}
+      revelation={item.revelation}
+      index={index}></ListItem>
+  );
+
+  const getData = async () => {
+    try {
+      const value = await AsyncStorage.getItem('lastRead');
+      if (value !== null) {
+        const data = JSON.parse(value);
+        lastReadRef.current = data;
+      }
+    } catch (e) {
+      console.log(e);
+    }
+  };
+
+  useEffect(() => {
+    getData();
+  }, []);
+
   useEffect(() => {
     axios
       .get('https://quran-api-id.vercel.app/surahs')
@@ -29,7 +137,6 @@ const Home = ({navigation}) => {
     <View
       style={{
         paddingTop: 30,
-        // paddingHorizontal: 20,
         backgroundColor: '#5c49f0',
         flex: 1,
       }}>
@@ -73,6 +180,38 @@ const Home = ({navigation}) => {
 
       <View
         style={{
+          position: 'absolute',
+          bottom: 30,
+          right: 30,
+          zIndex: 10,
+          flexDirection: 'column',
+        }}>
+        {data !== null && lastReadRef.current && (
+          <TouchableOpacity
+            style={{
+              backgroundColor: '#71d5e3',
+              borderRadius: 100,
+              justifyContent: 'center',
+              alignItems: 'center',
+              height: 50,
+              width: 50,
+            }}
+            onPress={() => {
+              flatListRef?.current?.scrollToIndex({
+                index: lastReadRef.current.number - 1,
+                animated: true,
+              });
+            }}>
+            <Image
+              source={IconMark}
+              style={{height: 30, width: 30, tintColor: 'white'}}
+              resizeMode="contain"></Image>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      <View
+        style={{
           backgroundColor: 'white',
           paddingTop: 3,
           paddingHorizontal: 20,
@@ -80,84 +219,21 @@ const Home = ({navigation}) => {
           borderTopRightRadius: 30,
           flex: 1,
         }}>
-        <ScrollView
+        <View
           contentContainerStyle={{flexGrow: 1}}
           showsVerticalScrollIndicator={false}>
           {data.length > 0 ? (
-            data.map((data, index) => {
-              return (
-                <TouchableOpacity
-                  onPress={() => navigation.push("Surat", {suratNo: data.number})}
-                  key={index}
-                  activeOpacity={0.8}
-                  style={{
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    paddingVertical: 10,
-                    backgroundColor: 'white',
-                    // elevation: 1,
-                    paddingHorizontal: 10,
-                    borderRadius: 10,
-                    marginTop: index == 0 ? 10 : 0
-                  }}>
-                  <View>
-                    <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                      <View
-                        style={{
-                          height: 30,
-                          width: 30,
-                          backgroundColor: 'black',
-                          justifyContent: 'center',
-                          alignItems: 'center',
-                          borderRadius: 50,
-                          marginRight: 10,
-                        }}>
-                        <Text
-                          style={{
-                            color: 'white',
-                            fontSize: 12,
-                          }}>
-                          {data.number}
-                        </Text>
-                      </View>
-                      <View>
-                        <Text
-                          style={{
-                            color: '#727272',
-                            fontSize: 18,
-                            fontFamily: 'Poppins-Regular',
-                          }}>
-                          {data.name}
-                        </Text>
-                        <Text
-                          style={{
-                            color: '#727272',
-                            fontSize: 14,
-                            fontFamily: 'Poppins-Regular',
-                          }}>
-                          {data.translation} ({data.numberOfAyahs})
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-                  <View>
-                    <Text
-                      style={{
-                        color: '#727272',
-                        fontSize: 14,
-                        fontFamily: 'Poppins-Regular',
-                      }}>
-                      {data.revelation}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              );
-            })
+            <FlatList
+              ref={flatListRef}
+              data={data}
+              keyExtractor={data.number}
+              showsVerticalScrollIndicator={false}
+              removeClippedSubviews={true}
+              renderItem={renderItem}></FlatList>
           ) : (
             <ActivityIndicator style={{marginTop: 20}} size="large" />
           )}
-        </ScrollView>
+        </View>
       </View>
     </View>
   );
