@@ -2,10 +2,10 @@ import React, {useEffect, useState, useRef} from 'react';
 import {
   View,
   Text,
-  FlatList,
   Image,
   TouchableOpacity,
   ActivityIndicator,
+  ScrollView,
 } from 'react-native';
 import axios from 'axios';
 import SoundPlayer from 'react-native-sound-player';
@@ -21,14 +21,37 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const Surat = ({navigation, route}) => {
   const [data, setData] = useState(null);
   const [isStop, setIsStop] = useState(false);
-  const flatListRef = useRef(null);
-  const indexRef = useRef(0);
-  const lastReadRef = useRef({});
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [ref, setRef] = useState(null);
+  const [dataSourceCords, setDataSourceCords] = useState([]);
+  const [ayatAktif, setAyatAktif] = useState(0);
+  const [terakhirBaca, setTerakhirBaca] = useState(null);
+
+  const markerColor = index => {
+    if (
+      terakhirBaca !== null &&
+      terakhirBaca?.name == data?.name &&
+      ayatAktif == index
+    ) {
+      return 'black';
+    } else {
+      return 'lightgray';
+    }
+  };
+
+  const scrollHandler = () => {
+    if (dataSourceCords.length > 1) {
+      ref.scrollTo({
+        x: 0,
+        y: dataSourceCords[ayatAktif],
+        animated: true,
+      });
+    } else {
+      console.log('Out of Max Index');
+    }
+  };
 
   const handleClickAyat = async index => {
     clearData();
-
     const storeData = {
       ...data,
       ayat: index,
@@ -48,9 +71,8 @@ const Surat = ({navigation, route}) => {
       const value = await AsyncStorage.getItem('lastRead');
       if (value !== null) {
         const data = JSON.parse(value);
-        lastReadRef.current = data;
-        indexRef.current = data.ayat;
-        setCurrentIndex(data.ayat);
+        setAyatAktif(data.ayat);
+        setTerakhirBaca(data);
       }
     } catch (e) {
       console.log(e);
@@ -88,11 +110,17 @@ const Surat = ({navigation, route}) => {
     navigation.push('Home');
   };
 
-  const ListItem = ({arab, translation, tafsir, index}) => {
+  const ListItem = ({data, index}) => {
     return (
-      <View key={index} style={{marginBottom: 20}}>
-        <TouchableOpacity
-          onPress={() => handleClickAyat(index)}
+      <View
+        key={index}
+        style={{marginBottom: 20}}
+        onLayout={event => {
+          const layout = event.nativeEvent.layout;
+          dataSourceCords[index] = layout.y;
+          setDataSourceCords(dataSourceCords);
+        }}>
+        <View
           style={{
             padding: 10,
             borderWidth: 2,
@@ -103,20 +131,16 @@ const Surat = ({navigation, route}) => {
             flexDirection: 'row',
             alignItems: 'center',
           }}>
-          {lastReadRef.current &&
-            data.name == lastReadRef?.current?.name &&
-            indexRef.current === index && (
-              <View>
-                <Image
-                  source={IconMark}
-                  style={{
-                    height: 30,
-                    width: 30,
-                    tintColor: 'black',
-                  }}
-                  resizeMode="contain"></Image>
-              </View>
-            )}
+          <TouchableOpacity onPress={() => handleClickAyat(index)}>
+            <Image
+              source={IconMark}
+              style={{
+                height: 30,
+                width: 30,
+                tintColor: markerColor(index),
+              }}
+              resizeMode="contain"></Image>
+          </TouchableOpacity>
           <Text
             style={{
               color: '#9ea3a3',
@@ -124,9 +148,9 @@ const Surat = ({navigation, route}) => {
               fontFamily: 'Poppins-Regular',
               flex: 1,
             }}>
-            {arab}
+            {data.arab}
           </Text>
-        </TouchableOpacity>
+        </View>
         <Text
           style={{
             color: '#9ea3a3',
@@ -134,7 +158,7 @@ const Surat = ({navigation, route}) => {
             fontFamily: 'Poppins-SemiBold',
             marginBottom: 10,
           }}>
-          {index + 1}. {translation}
+          {index + 1}. {data.translation}
         </Text>
         <Text
           style={{
@@ -143,33 +167,25 @@ const Surat = ({navigation, route}) => {
             fontFamily: 'Poppins-Regular',
             marginBottom: 10,
           }}>
-          {tafsir}
+          {data.tafsir.kemenag.short}
         </Text>
       </View>
     );
   };
 
-  const renderItem = ({item, index}) => (
-    <ListItem
-      arab={item.arab}
-      translation={item.translation}
-      tafsir={item.tafsir.kemenag.short}
-      index={index}></ListItem>
-  );
-
   const HeaderItem = () => {
     return (
-        <Text
-          style={{
-            color: '#9ea3a3',
-            fontSize: 26,
-            fontFamily: 'Poppins-Regular',
-            textAlign: 'center',
-            marginBottom: 10,
-          }}>
-          {data !== null && route.params.suratNo !== 1 && data.bismillah.arab}
-        </Text>
-    )
+      <Text
+        style={{
+          color: '#9ea3a3',
+          fontSize: 26,
+          fontFamily: 'Poppins-Regular',
+          textAlign: 'center',
+          marginBottom: 10,
+        }}>
+        {data !== null && route.params.suratNo !== 1 && data.bismillah.arab}
+      </Text>
+    );
   };
 
   const fetchDataApi = () => {
@@ -238,7 +254,6 @@ const Surat = ({navigation, route}) => {
         )}
       </View>
       <View style={{flex: 1}}>
-        
         <View
           style={{
             position: 'absolute',
@@ -251,7 +266,7 @@ const Surat = ({navigation, route}) => {
               style={{
                 justifyContent: 'center',
                 flexDirection: 'row',
-                marginBottom: 10
+                marginBottom: 10,
               }}>
               {isStop ? (
                 <TouchableOpacity
@@ -288,48 +303,44 @@ const Surat = ({navigation, route}) => {
               )}
             </View>
           )}
-          {data !== null &&
-            lastReadRef.current &&
-            data.name == lastReadRef.current.name && (
-              <TouchableOpacity
-                style={{
-                  backgroundColor: '#71d5e3',
-                  borderRadius: 100,
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  height: 50,
-                  width: 50,
-                }}
-                onPress={() => {
-                  flatListRef?.current?.scrollToIndex({
-                    index: indexRef.current,
-                    animated: true,
-                  });
-                }}>
-                <Image
-                  source={IconMark}
-                  style={{height: 30, width: 30, tintColor: 'white'}}
-                  resizeMode="contain"></Image>
-              </TouchableOpacity>
-            )}
+          {data !== null && data.name == terakhirBaca.name && (
+            <TouchableOpacity
+              style={{
+                backgroundColor: '#71d5e3',
+                borderRadius: 100,
+                justifyContent: 'center',
+                alignItems: 'center',
+                height: 50,
+                width: 50,
+              }}
+              onPress={() => scrollHandler()}>
+              <Image
+                source={IconMark}
+                style={{height: 30, width: 30, tintColor: 'white'}}
+                resizeMode="contain"></Image>
+            </TouchableOpacity>
+          )}
         </View>
 
-        {/* render arab */}
-        {data !== null && data.ayahs.length > 0 ? (
-          <FlatList
-            ref={flatListRef}
-            data={data.ayahs}
-            keyExtractor={data.ayahs.arab}
-            showsVerticalScrollIndicator={false}
-            initialNumToRender={data.ayahs.length}
-            updateCellsBatchingPeriod={data.ayahs.length}
-            maxToRenderPerBatch={data.ayahs.length}
-            removeClippedSubviews={true}
-            ListHeaderComponent={HeaderItem}
-            renderItem={renderItem}></FlatList>
-        ) : (
-          <ActivityIndicator style={{marginTop: 20}} size="large" />
-        )}
+        <ScrollView
+          ref={ref => {
+            setRef(ref);
+          }}
+          contentContainerStyle={{flexGrow: 1}}
+          showsVerticalScrollIndicator={false}>
+          <HeaderItem></HeaderItem>
+
+          {/* render arab */}
+          {data !== null && data.ayahs.length > 0 ? (
+            data.ayahs.map((data, index) => {
+              return (
+                <ListItem key={index} data={data} index={index}></ListItem>
+              );
+            })
+          ) : (
+            <ActivityIndicator style={{marginTop: 20}} size="large" />
+          )}
+        </ScrollView>
       </View>
     </View>
   );

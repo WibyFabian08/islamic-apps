@@ -4,6 +4,7 @@ import ListKisah from "./ListKisah";
 import Kisah from "./Kisah";
 import ListDoa from "./ListDoa";
 import Doa from './Doa'
+import Splash from "./Splash";
 
 export {
     Home,
@@ -11,5 +12,6 @@ export {
     ListKisah,
     Kisah,
     ListDoa,
-    Doa
+    Doa,
+    Splash
 }

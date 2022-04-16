@@ -5,7 +5,7 @@ import {
   TouchableOpacity,
   Image,
   ActivityIndicator,
-  FlatList,
+  ScrollView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -16,21 +16,20 @@ import {TopNavigation} from '../components';
 
 const Home = ({navigation}) => {
   const [data, setData] = useState([]);
-  const flatListRef = useRef(null);
   const lastReadRef = useRef({});
+  const [ref, setRef] = useState(null);
+  const [dataSourceCords, setDataSourceCords] = useState([]);
 
-  const ListItem = ({
-    number,
-    name,
-    translation,
-    numberOfAyahs,
-    revelation,
-    index,
-  }) => {
+  const ListItem = ({data, index}) => {
     return (
       <TouchableOpacity
-        onPress={() => navigation.push('Surat', {suratNo: number})}
+        onPress={() => navigation.push('Surat', {suratNo: data.number})}
         key={index}
+        onLayout={event => {
+          const layout = event.nativeEvent.layout;
+          dataSourceCords[index] = layout.y;
+          setDataSourceCords(dataSourceCords);
+        }}
         activeOpacity={0.8}
         style={{
           flexDirection: 'row',
@@ -59,7 +58,7 @@ const Home = ({navigation}) => {
                   color: 'white',
                   fontSize: 12,
                 }}>
-                {number}
+                {data.number}
               </Text>
             </View>
             <View>
@@ -69,7 +68,7 @@ const Home = ({navigation}) => {
                   fontSize: 18,
                   fontFamily: 'Poppins-Regular',
                 }}>
-                {name}
+                {data.name}
               </Text>
               <Text
                 style={{
@@ -77,34 +76,42 @@ const Home = ({navigation}) => {
                   fontSize: 14,
                   fontFamily: 'Poppins-Regular',
                 }}>
-                {translation} ({numberOfAyahs})
+                {data.translation} ({data.numberOfAyahs})
               </Text>
             </View>
           </View>
         </View>
-        <View>
+        <View style={{flexDirection: 'row', alignItems: 'center'}}>
           <Text
             style={{
               color: '#727272',
               fontSize: 14,
               fontFamily: 'Poppins-Regular',
             }}>
-            {revelation}
+            {data.revelation}
           </Text>
+          {index === lastReadRef.current.number - 1 && (
+            <Image
+              source={IconMark}
+              style={{height: 20, width: 20, marginLeft: 10}}
+              resizeMode="contain"></Image>
+          )}
         </View>
       </TouchableOpacity>
     );
   };
 
-  const renderItem = ({item, index}) => (
-    <ListItem
-      number={item.number}
-      name={item.name}
-      translation={item.translation}
-      numberOfAyahs={item.numberOfAyahs}
-      revelation={item.revelation}
-      index={index}></ListItem>
-  );
+  const scrollHandler = () => {
+    if (dataSourceCords.length > 1) {
+      ref.scrollTo({
+        x: 0,
+        y: dataSourceCords[lastReadRef.current.number - 1],
+        animated: true,
+      });
+    } else {
+      console.log('Out of Max Index');
+    }
+  };
 
   const getData = async () => {
     try {
@@ -196,12 +203,7 @@ const Home = ({navigation}) => {
               height: 50,
               width: 50,
             }}
-            onPress={() => {
-              flatListRef?.current?.scrollToIndex({
-                index: lastReadRef.current.number - 1,
-                animated: true,
-              });
-            }}>
+            onPress={() => scrollHandler()}>
             <Image
               source={IconMark}
               style={{height: 30, width: 30, tintColor: 'white'}}
@@ -219,21 +221,22 @@ const Home = ({navigation}) => {
           borderTopRightRadius: 30,
           flex: 1,
         }}>
-        <View
+        <ScrollView
+          ref={ref => {
+            setRef(ref);
+          }}
           contentContainerStyle={{flexGrow: 1}}
           showsVerticalScrollIndicator={false}>
           {data.length > 0 ? (
-            <FlatList
-              ref={flatListRef}
-              data={data}
-              keyExtractor={data.number}
-              showsVerticalScrollIndicator={false}
-              removeClippedSubviews={true}
-              renderItem={renderItem}></FlatList>
+            data.map((data, index) => {
+              return (
+                <ListItem key={index} data={data} index={index}></ListItem>
+              );
+            })
           ) : (
             <ActivityIndicator style={{marginTop: 20}} size="large" />
           )}
-        </View>
+        </ScrollView>
       </View>
     </View>
   );

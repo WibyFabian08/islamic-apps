@@ -4,7 +4,7 @@ import {StatusBar, Easing} from 'react-native';
 import {NavigationContainer} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 
-import {Home, Surat, ListKisah, Kisah, ListDoa, Doa} from './screens';
+import {Home, Surat, ListKisah, Kisah, ListDoa, Doa, Splash} from './screens';
 
 import store from './redux/store';
 import {Provider} from 'react-redux';
@@ -44,8 +44,12 @@ const App = () => {
       <NavigationContainer>
         <StatusBar translucent={true} backgroundColor="transparent"></StatusBar>
         <Stack.Navigator
-          initialRouteName="Home"
+          initialRouteName="Splash"
           screenOptions={{headerShown: false}}>
+            <Stack.Screen
+            name="Splash"
+            component={Splash}
+            options={() => options}></Stack.Screen>
           <Stack.Screen
             name="Home"
             component={Home}
