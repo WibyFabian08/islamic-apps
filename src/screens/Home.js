@@ -6,6 +6,8 @@ import {
   Image,
   ActivityIndicator,
   ScrollView,
+  BackHandler,
+  Alert
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -102,6 +104,18 @@ const Home = ({navigation}) => {
     );
   };
 
+  const backAction = () => {
+    Alert.alert('Tunggu Sebentar!', 'Yakin ingin keluar dari aplikasi?', [
+      {
+        text: 'Batal',
+        onPress: () => null,
+        style: 'cancel',
+      },
+      {text: 'Ya', onPress: () => BackHandler.exitApp()},
+    ]);
+    return true;
+  };
+
   const scrollHandler = () => {
     if (dataSourceCords.length > 1) {
       ref.scrollTo({
@@ -140,6 +154,13 @@ const Home = ({navigation}) => {
       .catch(err => {
         console.log(err);
       });
+  }, []);
+
+  useEffect(() => {
+    BackHandler.addEventListener('hardwareBackPress', backAction);
+
+    return () =>
+      BackHandler.removeEventListener('hardwareBackPress', backAction);
   }, []);
 
   return (

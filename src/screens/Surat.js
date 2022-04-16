@@ -260,6 +260,7 @@ const Surat = ({navigation, route}) => {
             bottom: 30,
             zIndex: 10,
             flexDirection: 'column',
+            right: 5
           }}>
           {data !== null && data.audio && (
             <View

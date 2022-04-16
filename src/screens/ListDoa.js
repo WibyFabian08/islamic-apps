@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useEffect} from 'react';
 import {
   View,
   Text,
@@ -6,13 +6,38 @@ import {
   TouchableOpacity,
   Image,
   ActivityIndicator,
+  BackHandler,
+  Alert,
 } from 'react-native';
+import { useDispatch } from 'react-redux';
 
 import {Logo} from '../assets/images';
 import {TopNavigation} from '../components';
 import doa from '../data/doa';
 
 const ListDoa = ({navigation}) => {
+  const dispatch = useDispatch()
+  const backAction = () => {
+    Alert.alert('Tunggu Sebentar!', 'Yakin ingin keluar dari aplikasi?', [
+      {
+        text: 'Batal',
+        onPress: () => null,
+        style: 'cancel',
+      },
+      {text: 'Ya', onPress: () => {
+        dispatch({type: "SET_ACTIVE_SCREEN", value: "Home"})
+        BackHandler.exitApp()
+      }},
+    ]);
+    return true;
+  };
+
+  useEffect(() => {
+    BackHandler.addEventListener('hardwareBackPress', backAction);
+
+    return () =>
+      BackHandler.removeEventListener('hardwareBackPress', backAction);
+  }, []);
   return (
     <View
       style={{
