@@ -19,6 +19,7 @@ const Home = ({navigation}) => {
   const lastReadRef = useRef({});
   const [ref, setRef] = useState(null);
   const [dataSourceCords, setDataSourceCords] = useState([]);
+  const [lastRead, setLastRead] = useState(null)
 
   const ListItem = ({data, index}) => {
     return (
@@ -90,7 +91,7 @@ const Home = ({navigation}) => {
             }}>
             {data.revelation}
           </Text>
-          {index === lastReadRef.current.number - 1 && (
+          {lastRead !== null && index === lastRead.number - 1 && (
             <Image
               source={IconMark}
               style={{height: 20, width: 20, marginLeft: 10}}
@@ -105,7 +106,7 @@ const Home = ({navigation}) => {
     if (dataSourceCords.length > 1) {
       ref.scrollTo({
         x: 0,
-        y: dataSourceCords[lastReadRef.current.number - 1],
+        y: dataSourceCords[lastRead.number - 1],
         animated: true,
       });
     } else {
@@ -118,7 +119,8 @@ const Home = ({navigation}) => {
       const value = await AsyncStorage.getItem('lastRead');
       if (value !== null) {
         const data = JSON.parse(value);
-        lastReadRef.current = data;
+        // lastReadRef.current = data;
+        setLastRead(data)
       }
     } catch (e) {
       console.log(e);
@@ -193,7 +195,7 @@ const Home = ({navigation}) => {
           zIndex: 10,
           flexDirection: 'column',
         }}>
-        {data !== null && lastReadRef.current && (
+        {data !== null && data.length > 0 && lastRead !== null && (
           <TouchableOpacity
             style={{
               backgroundColor: '#71d5e3',

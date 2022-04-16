@@ -303,7 +303,7 @@ const Surat = ({navigation, route}) => {
               )}
             </View>
           )}
-          {data !== null && data.name == terakhirBaca.name && (
+          {data !== null && terakhirBaca !== null && data.name == terakhirBaca.name && (
             <TouchableOpacity
               style={{
                 backgroundColor: '#71d5e3',
