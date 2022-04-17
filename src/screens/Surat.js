@@ -238,6 +238,12 @@ const Surat = ({navigation, route}) => {
     getData();
   }, []);
 
+  useEffect(() => {
+      SoundPlayer.addEventListener("FinishedPlaying", () => {
+        setIsStop(false);
+      })
+  }, [])
+
   return (
     <View
       style={{
