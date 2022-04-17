@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
   ScrollView,
   BackHandler,
-  Alert
+  Alert,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -21,7 +21,7 @@ const Home = ({navigation}) => {
   const lastReadRef = useRef({});
   const [ref, setRef] = useState(null);
   const [dataSourceCords, setDataSourceCords] = useState([]);
-  const [lastRead, setLastRead] = useState(null)
+  const [lastRead, setLastRead] = useState(null);
 
   const ListItem = ({data, index}) => {
     return (
@@ -134,7 +134,7 @@ const Home = ({navigation}) => {
       if (value !== null) {
         const data = JSON.parse(value);
         // lastReadRef.current = data;
-        setLastRead(data)
+        setLastRead(data);
       }
     } catch (e) {
       console.log(e);
@@ -257,7 +257,11 @@ const Home = ({navigation}) => {
               );
             })
           ) : (
-            <ActivityIndicator style={{marginTop: 20}} size="large" />
+            <ActivityIndicator
+              style={{marginTop: 20}}
+              color='#5c49f0'
+              size="large"
+            />
           )}
         </ScrollView>
       </View>
