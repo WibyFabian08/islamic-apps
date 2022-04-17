@@ -1,4 +1,4 @@
-import React, {useEffect, useState, useRef} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   View,
   Text,
@@ -21,10 +21,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const Surat = ({navigation, route}) => {
   const [data, setData] = useState(null);
   const [isStop, setIsStop] = useState(false);
+  const [isStopOne, setIsStopOne] = useState(false);
   const [ref, setRef] = useState(null);
   const [dataSourceCords, setDataSourceCords] = useState([]);
   const [ayatAktif, setAyatAktif] = useState(0);
   const [terakhirBaca, setTerakhirBaca] = useState(null);
+  const [audioIndex, setAudioIndex] = useState(null);
 
   const markerColor = index => {
     if (
@@ -94,11 +96,22 @@ const Surat = ({navigation, route}) => {
     }
   };
 
+  const playOne = (audio, index) => {
+    try {
+      SoundPlayer.playUrl(audio);
+      setIsStopOne(true);
+      setAudioIndex(index);
+    } catch (err) {
+      console.log(`cannot play the sound file`, err);
+    }
+  };
+
   const stop = () => {
     if (data !== null && data.audio) {
       try {
         SoundPlayer.stop();
         setIsStop(false);
+        setIsStopOne(false);
       } catch (err) {
         console.log(`cannot pause the sound file`, err);
       }
@@ -131,16 +144,41 @@ const Surat = ({navigation, route}) => {
             flexDirection: 'row',
             alignItems: 'center',
           }}>
-          <TouchableOpacity onPress={() => handleClickAyat(index)}>
-            <Image
-              source={IconMark}
+          <View style={{flexDirection: 'row', alignItems: 'center'}}>
+            <TouchableOpacity onPress={() => handleClickAyat(index)}>
+              <Image
+                source={IconMark}
+                style={{
+                  height: 30,
+                  width: 30,
+                  tintColor: markerColor(index),
+                }}
+                resizeMode="contain"></Image>
+            </TouchableOpacity>
+
+            <View
               style={{
-                height: 30,
-                width: 30,
-                tintColor: markerColor(index),
-              }}
-              resizeMode="contain"></Image>
-          </TouchableOpacity>
+                justifyContent: 'center',
+                flexDirection: 'row',
+              }}>
+              {isStopOne && audioIndex === index ? (
+                <TouchableOpacity onPress={() => stop()}>
+                  <Image
+                    source={IconStop}
+                    style={{height: 30, width: 30, tintColor: 'black'}}
+                    resizeMode="contain"></Image>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  onPress={() => playOne(data.audio.alafasy, index)}>
+                  <Image
+                    source={IconPlay}
+                    style={{height: 30, width: 30, tintColor: 'black'}}
+                    resizeMode="contain"></Image>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
           <Text
             style={{
               color: '#9ea3a3',
@@ -207,6 +245,13 @@ const Surat = ({navigation, route}) => {
     getData();
   }, []);
 
+  useEffect(() => {
+    SoundPlayer.addEventListener('FinishedPlaying', () => {
+      setAudioIndex(null);
+      setIsStopOne(false);
+    });
+  }, []);
+
   return (
     <View
       style={{
@@ -260,7 +305,7 @@ const Surat = ({navigation, route}) => {
             bottom: 30,
             zIndex: 10,
             flexDirection: 'column',
-            right: 5
+            right: 5,
           }}>
           {data !== null && data.audio && (
             <View
@@ -304,23 +349,25 @@ const Surat = ({navigation, route}) => {
               )}
             </View>
           )}
-          {data !== null && terakhirBaca !== null && data.name == terakhirBaca.name && (
-            <TouchableOpacity
-              style={{
-                backgroundColor: '#71d5e3',
-                borderRadius: 100,
-                justifyContent: 'center',
-                alignItems: 'center',
-                height: 50,
-                width: 50,
-              }}
-              onPress={() => scrollHandler()}>
-              <Image
-                source={IconMark}
-                style={{height: 30, width: 30, tintColor: 'white'}}
-                resizeMode="contain"></Image>
-            </TouchableOpacity>
-          )}
+          {data !== null &&
+            terakhirBaca !== null &&
+            data.name == terakhirBaca.name && (
+              <TouchableOpacity
+                style={{
+                  backgroundColor: '#71d5e3',
+                  borderRadius: 100,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  height: 50,
+                  width: 50,
+                }}
+                onPress={() => scrollHandler()}>
+                <Image
+                  source={IconMark}
+                  style={{height: 30, width: 30, tintColor: 'white'}}
+                  resizeMode="contain"></Image>
+              </TouchableOpacity>
+            )}
         </View>
 
         <ScrollView
