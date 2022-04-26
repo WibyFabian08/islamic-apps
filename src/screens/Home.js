@@ -149,7 +149,7 @@ const Home = ({navigation}) => {
     axios
       .get('https://quran-api-id.vercel.app/surahs')
       .then(res => {
-        setData(res?.data?.data);
+        setData(res?.data);
       })
       .catch(err => {
         console.log(err);
